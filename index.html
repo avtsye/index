@@ -3,646 +3,309 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>נגן מדיה מתקדם - PWA</title>
+    <title>דודי | מתכנת בכיר</title>
     <style>
+        /* הגדרת משתני עיצוב לשליטה נוחה בצבעים ורווחים */
         :root {
-            --bg-color: #121212;
-            --surface-color: #1e1e1e;
-            --primary-color: #00bcd4;
-            --secondary-color: #ff4081;
-            --danger-color: #f44336;
-            --text-color: #ffffff;
-            --text-secondary: #aaaaaa;
+            --bg-color: #0f172a;
+            --surface-color: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-color: #38bdf8;
+            --accent-hover: #0284c7;
+            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --transition-speed: 0.3s;
+        }
+
+        /* איפוס הגדרות ברירת מחדל של הדפדפן */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: var(--font-main);
             background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            box-sizing: border-box;
+            color: var(--text-primary);
+            line-height: 1.6;
         }
 
-        .player-container {
-            background-color: var(--surface-color);
-            width: 100%;
-            max-width: 900px;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .player-container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .main-panel {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .side-panel {
-            background: #2a2a2a;
-            padding: 15px;
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-            max-height: 700px;
-        }
-
-        /* Drag & Drop Zone */
-        #drop-zone {
-            border: 2px dashed var(--primary-color);
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: 0.3s;
-            margin-bottom: 15px;
-            font-size: 0.9em;
-        }
-
-        #drop-zone:hover, #drop-zone.dragover {
-            background-color: rgba(0, 188, 212, 0.1);
-            color: var(--primary-color);
-        }
-
-        canvas {
-            width: 100%;
-            height: 60px;
-            background-color: #000;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-
-        video {
-            width: 100%;
-            max-height: 350px;
-            background-color: #000;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            outline: none;
-            min-height: 50px;
-        }
-
-        /* Button Controls */
-        .btn-controls {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-
-        button {
-            background-color: #333;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: 0.2s;
-            font-size: 0.9em;
-        }
-
-        button:hover { background-color: var(--primary-color); color: #000; }
-        button.active { background-color: var(--secondary-color); color: #fff; }
-        
-        button.danger { background-color: #4a1a1a; color: #ffcccc; border: 1px solid var(--danger-color); }
-        button.danger:hover { background-color: var(--danger-color); color: white; }
-
-        /* Slider Controls */
-        .sliders {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
-            background: #2a2a2a;
-            padding: 10px;
-            border-radius: 10px;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .control-group label {
-            font-size: 0.8em;
-            color: var(--text-secondary);
-            margin-bottom: 5px;
-        }
-
-        input[type=range] { width: 100%; accent-color: var(--primary-color); }
-
-        /* Playlists & Bookmarks */
-        .panel-title {
-            font-size: 1.1em;
-            border-bottom: 1px solid #444;
-            padding-bottom: 5px;
-            margin-bottom: 10px;
-            margin-top: 0;
+        /* עיצוב סרגל הניווט העליון */
+        header {
+            background-color: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 1rem 5%;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid #334155;
         }
 
-        .search-bar {
-            width: 100%;
-            padding: 8px;
-            border-radius: 5px;
-            border: none;
-            background: #1e1e1e;
-            color: white;
-            margin-bottom: 10px;
-            box-sizing: border-box;
+        header h1 {
+            color: var(--accent-color);
+            font-size: 1.5rem;
         }
 
-        ul {
+        nav ul {
             list-style: none;
-            padding: 0;
-            margin: 0;
-            overflow-y: auto;
-            flex-grow: 1;
-        }
-
-        #playlist li, #bookmarks-list li {
-            padding: 8px;
-            background: #1e1e1e;
-            margin-bottom: 5px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9em;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            gap: 2rem;
         }
 
-        #playlist li:hover, #bookmarks-list li:hover { background: #444; }
-        #playlist li.playing { background: var(--primary-color); color: #000; font-weight: bold; }
-        
-        .track-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-grow: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+        nav a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color var(--transition-speed);
         }
 
-        .action-btn {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 3px;
+        nav a:hover {
+            color: var(--accent-color);
         }
-        .action-btn:hover { background: rgba(255,0,0,0.2); color: var(--danger-color); }
-        .playing .action-btn { color: #000; }
-        .playing .action-btn:hover { background: rgba(0,0,0,0.1); color: #d32f2f; }
 
+        /* הגדרות מיכלים אזוריים */
+        section {
+            padding: 5rem 5%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
 
-        .bookmarks-container {
-            margin-top: 15px;
+        .section-title {
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            text-align: center;
+            color: var(--text-primary);
+        }
+
+        .section-title span {
+            color: var(--accent-color);
+        }
+
+        /* אזור ההיכרות (Hero) */
+        #hero {
             display: flex;
             flex-direction: column;
-            flex-grow: 1;
+            justify-content: center;
+            min-height: 80vh;
         }
 
-        #fileInput { display: none; }
+        #hero h2 {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            line-height: 1.1;
+        }
+
+        #hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 2rem;
+        }
+
+        /* רשת הפרויקטים והכישורים - Grid Layout */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        /* עיצוב כרטיסיות מיומנויות ופרויקטים */
+        .card {
+            background-color: var(--surface-color);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-color: var(--accent-color);
+        }
+
+        .card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--accent-color);
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .tag {
+            background-color: #0f172a;
+            color: var(--accent-color);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            border: 1px solid #334155;
+        }
+
+        /* כפתורים וקישורים */
+        .btn {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: #000;
+            padding: 0.8rem 1.5rem;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 6px;
+            transition: background-color var(--transition-speed);
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+            color: #fff;
+        }
+
+        /* תחתית העמוד */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            background-color: var(--surface-color);
+            border-top: 1px solid #334155;
+            color: var(--text-secondary);
+        }
+
+        /* התאמה למסכים קטנים (Mobile Responsive) */
+        @media (max-width: 768px) {
+            #hero h2 { font-size: 2.5rem; }
+            nav ul { display: none; } /* במערכת מלאה ניתן להוסיף תפריט המבורגר */
+        }
     </style>
 </head>
 <body>
 
-    <div class="player-container">
-        
-        <!-- Main Panel -->
-        <div class="main-panel">
-            <div id="drop-zone" onclick="document.getElementById('fileInput').click()">
-                גרור קבצי שמע/וידאו לכאן (ניתן לגרור גם קובץ .vtt לכתוביות)
-            </div>
-            <input type="file" id="fileInput" accept="audio/*, video/*, .vtt" multiple onchange="handleFiles(this.files)">
+    <header>
+        <h1>דודי.</h1>
+        <nav>
+            <ul>
+                <li><a href="#about">אודות</a></li>
+                <li><a href="#skills">התמחות</a></li>
+                <li><a href="#projects">פרויקטים נבחרים</a></li>
+                <li><a href="#contact">צור קשר</a></li>
+            </ul>
+        </nav>
+    </header>
 
-            <canvas id="visualizer"></canvas>
-            
-            <video id="mediaPlayer" controls playsinline>
-                <track id="subtitleTrack" kind="subtitles" srclang="he" label="עברית" default>
-            </video>
+    <section id="hero">
+        <p>שלום, שמי דודי ואני</p>
+        <h2>מהנדס תוכנה <span>ומפתח בכיר.</span></h2>
+        <p>מתמחה בבניית מערכות מורכבות, פיתוח פתרונות Offline מתקדמים, אופטימיזציית ביצועים וחקר ביצועי רשת (Reverse Engineering). מתמקד בכתיבת קוד נקי, מאובטח וסקיילבילי.</p>
+        <div>
+            <a href="#projects" class="btn">צפה בעבודות שלי</a>
+        </div>
+    </section>
 
-            <div class="btn-controls">
-                <button onclick="playPrev()">⏮ הקודם</button>
-                <button id="btnLoop" onclick="toggleLoop()">🔁 לולאה</button>
-                <button id="btnShuffle" onclick="toggleShuffle()">🔀 אקראי</button>
-                <button onclick="playNext()">הבא ⏭</button>
-                <button onclick="togglePiP()">📺 צף (PiP)</button>
-                <button onclick="addBookmark()">📌 שמור סימניה</button>
-            </div>
-
-            <div class="sliders">
-                <div class="control-group">
-                    <label>מהירות (x<span id="speedVal">1.0</span>)</label>
-                    <input type="range" id="speed" min="0.25" max="3" step="0.25" value="1" oninput="changeSpeed(this.value)">
+    <section id="skills">
+        <h2 class="section-title">תחומי <span>התמחות</span></h2>
+        <div class="grid-container">
+            <div class="card">
+                <h3>פיתוח צד שרת וסקריפטים</h3>
+                <p>כתיבת מנועים, כלי אוטומציה ושירותי רשת מתקדמים תוך התמקדות ביעילות.</p>
+                <div class="tags">
+                    <span class="tag">Python</span>
+                    <span class="tag">Node.js</span>
+                    <span class="tag">HTTP Servers</span>
                 </div>
-                <div class="control-group">
-                    <label>באס (Bass)</label>
-                    <input type="range" id="bass" min="-20" max="20" step="1" value="0" oninput="updateEQ()">
+            </div>
+            <div class="card">
+                <h3>פיתוח ממשקים ואפליקציות Desktop</h3>
+                <p>יצירת ממשקי משתמש מתקדמים ויישומי שולחן עבודה חוצי-פלטפורמות.</p>
+                <div class="tags">
+                    <span class="tag">JavaScript</span>
+                    <span class="tag">HTML / CSS</span>
+                    <span class="tag">Electron</span>
                 </div>
-                <div class="control-group">
-                    <label>טרבל (Treble)</label>
-                    <input type="range" id="treble" min="-20" max="20" step="1" value="0" oninput="updateEQ()">
+            </div>
+            <div class="card">
+                <h3>אבטחה וארכיטקטורת מערכת</h3>
+                <p>הקשחת מערכות, ניהול מסדי נתונים מקומיים, ותכנון אפליקציות חסינות העובדות בסביבות מנותקות רשת.</p>
+                <div class="tags">
+                    <span class="tag">Data Security</span>
+                    <span class="tag">Reverse Engineering</span>
+                    <span class="tag">Performance Tuning</span>
                 </div>
             </div>
         </div>
+    </section>
 
-        <!-- Side Panel -->
-        <div class="side-panel">
-            <div class="panel-title">
-                <span>רשימת השמעה</span>
-                <button class="danger" onclick="clearDatabase()" style="font-size: 0.7em; padding: 4px 8px;">נקה הכל 🗑️</button>
+    <section id="projects">
+        <h2 class="section-title">פרויקטים <span>נבחרים</span></h2>
+        <div class="grid-container">
+            <div class="card">
+                <h3>Offline Maps System</h3>
+                <p>אפליקציית Desktop מבוססת Electron ו-Leaflet המאפשרת ניווט וניהול מפות באופן עצמאי לחלוטין ללא תלות בחיבור אינטרנט. כולל ניהול שכבות מידע ושמירה מקומית.</p>
+                <div class="tags">
+                    <span class="tag">Electron</span>
+                    <span class="tag">Leaflet</span>
+                    <span class="tag">JavaScript</span>
+                </div>
             </div>
-            <input type="text" class="search-bar" placeholder="חפש קובץ..." oninput="filterPlaylist(this.value)">
-            <ul id="playlist"></ul>
-
-            <div class="bookmarks-container">
-                <h3 class="panel-title">סימניות לקובץ הנוכחי</h3>
-                <ul id="bookmarks-list"></ul>
+            <div class="card">
+                <h3>Browser Lock Pro v2.0</h3>
+                <p>תוסף דפדפן מתקדם ממוקד אבטחה, הכולל נעילה אוטומטית בעת חוסר פעילות, ניהול פרופילים מקומי מרובה משתמשים עם הגנת PIN, וניהול לוגים אקטיבי.</p>
+                <div class="tags">
+                    <span class="tag">Web Extensions API</span>
+                    <span class="tag">HTML5 Local Storage</span>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Parallel Download Engine</h3>
+                <p>פיתוח מנוע להורדת קבצים מרובת-זרמים (Multi-stream) לשיפור מהירות התעבורה, מותאם אישית למנוע החיפוש Everything דרך שרת ה-HTTP שלו.</p>
+                <div class="tags">
+                    <span class="tag">Python</span>
+                    <span class="tag">Networking</span>
+                    <span class="tag">Concurrency</span>
+                </div>
+            </div>
+            <div class="card">
+                <h3>NodeBB System Integration</h3>
+                <p>שדרוג ותחזוקת מערכת פורומים NodeBB. מעבר מתחזוקת קבצים ידנית למערכת ניהול גרסאות (Git-based) לאוטומציה של שדרוגים ותחזוקת שרת חלקה.</p>
+                <div class="tags">
+                    <span class="tag">NodeBB</span>
+                    <span class="tag">Git</span>
+                    <span class="tag">Server Admin</span>
+                </div>
             </div>
         </div>
+    </section>
 
-    </div>
+    <section id="contact">
+        <h2 class="section-title">צור <span>קשר</span></h2>
+        <div style="text-align: center;">
+            <p style="margin-bottom: 2rem; font-size: 1.2rem; color: var(--text-secondary);">
+                מעוניין לשתף פעולה או לשמוע עוד על הפרויקטים שלי? מוזמן לפנות אליי.
+            </p>
+            <a href="mailto:your-email@example.com" class="btn">שלח אימייל</a>
+            <a href="https://github.com/YourUsername" class="btn" style="background-color: #334155; color: white; margin-right: 1rem;" target="_blank">בקר ב-GitHub שלי</a>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 דודי. כל הזכויות שמורות.</p>
+    </footer>
 
     <script>
-        // -- Global Variables --
-        let db;
-        let audioCtx, analyser, source, bassNode, trebleNode;
-        let currentObjectUrl = null;
-        let subtitleUrl = null;
-        const player = document.getElementById('mediaPlayer');
-        const canvas = document.getElementById('visualizer');
-        const canvasCtx = canvas.getContext('2d');
-        
-        let allTracks = [];
-        let currentTrackId = null;
-        let isLoop = false;
-        let isShuffle = false;
-
-        // -- Initialize IndexedDB --
-        const request = indexedDB.open("ProMediaDB", 1);
-        request.onupgradeneeded = e => {
-            db = e.target.result;
-            db.createObjectStore("tracks", { keyPath: "id", autoIncrement: true });
-        };
-        request.onsuccess = e => {
-            db = e.target.result;
-            loadPlaylist();
-            restoreState();
-        };
-
-        // -- Drag and Drop --
-        const dropZone = document.getElementById('drop-zone');
-        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-        dropZone.addEventListener('drop', e => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
-        });
-
-        function handleFiles(files) {
-            const transaction = db.transaction(["tracks"], "readwrite");
-            const store = transaction.objectStore("tracks");
-            let audioVideoAdded = false;
-
-            Array.from(files).forEach(file => {
-                if (file.type.startsWith('audio/') || file.type.startsWith('video/')) {
-                    store.add({ name: file.name, type: file.type.startsWith('video/') ? 'video' : 'audio', blob: file });
-                    audioVideoAdded = true;
-                } else if (file.name.endsWith('.vtt')) {
-                    if (subtitleUrl) URL.revokeObjectURL(subtitleUrl);
-                    subtitleUrl = URL.createObjectURL(file);
-                    document.getElementById('subtitleTrack').src = subtitleUrl;
-                    alert("נטענו כתוביות בהצלחה!");
-                }
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
             });
-            
-            if (audioVideoAdded) {
-                transaction.oncomplete = () => loadPlaylist();
-            }
-        }
-
-        // -- Load Playlist & File Management --
-        function loadPlaylist(filter = "") {
-            const list = document.getElementById('playlist');
-            list.innerHTML = "";
-            allTracks = [];
-            
-            db.transaction("tracks").objectStore("tracks").openCursor().onsuccess = e => {
-                const cursor = e.target.result;
-                if (cursor) {
-                    allTracks.push(cursor.value);
-                    if (cursor.value.name.toLowerCase().includes(filter.toLowerCase())) {
-                        const li = document.createElement("li");
-                        li.dataset.id = cursor.value.id;
-                        
-                        const trackInfo = document.createElement("div");
-                        trackInfo.className = "track-info";
-                        trackInfo.innerHTML = `<span>${cursor.value.type === 'video' ? '🎬' : '🎵'}</span> <span>${cursor.value.name}</span>`;
-                        trackInfo.onclick = () => playTrack(cursor.value);
-                        
-                        const deleteBtn = document.createElement("button");
-                        deleteBtn.className = "action-btn";
-                        deleteBtn.innerHTML = "🗑️";
-                        deleteBtn.title = "מחק קובץ";
-                        deleteBtn.onclick = (e) => {
-                            e.stopPropagation(); // מונע הפעלת השיר בעת לחיצה על מחיקה
-                            deleteTrack(cursor.value.id);
-                        };
-
-                        li.appendChild(trackInfo);
-                        li.appendChild(deleteBtn);
-                        list.appendChild(li);
-                    }
-                    cursor.continue();
-                } else {
-                    highlightCurrentTrack();
-                }
-            };
-        }
-
-        function filterPlaylist(query) { loadPlaylist(query); }
-
-        function deleteTrack(id) {
-            if(confirm("האם למחוק קובץ זה?")) {
-                const transaction = db.transaction(["tracks"], "readwrite");
-                transaction.objectStore("tracks").delete(id);
-                transaction.oncomplete = () => {
-                    // אם השיר שנמחק הוא זה שמתנגן כעת
-                    if (id === currentTrackId) {
-                        player.pause();
-                        player.src = "";
-                        currentTrackId = null;
-                        localStorage.removeItem('lastTrackId');
-                        document.getElementById('bookmarks-list').innerHTML = ""; // ניקוי סימניות לשיר שנמחק
-                    }
-                    loadPlaylist();
-                };
-            }
-        }
-
-        function clearDatabase() {
-            if(confirm("אזהרה: פעולה זו תמחק את כל הקבצים והשירים ששמורים בנגן. האם להמשיך?")) {
-                const transaction = db.transaction(["tracks"], "readwrite");
-                transaction.objectStore("tracks").clear();
-                transaction.oncomplete = () => {
-                    player.pause();
-                    player.src = "";
-                    currentTrackId = null;
-                    localStorage.removeItem('lastTrackId');
-                    document.getElementById('bookmarks-list').innerHTML = "";
-                    loadPlaylist();
-                    alert("המסד נתונים נוקה בהצלחה.");
-                };
-            }
-        }
-
-        // -- Playback --
-        function playTrack(track, resumeTime = 0) {
-            initWebAudio();
-            currentTrackId = track.id;
-            
-            if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
-            currentObjectUrl = URL.createObjectURL(track.blob); 
-            
-            player.src = currentObjectUrl;
-            player.currentTime = resumeTime;
-            player.play().catch(e => console.log("Requires interaction"));
-
-            highlightCurrentTrack();
-            loadBookmarks();
-
-            localStorage.setItem('lastTrackId', track.id);
-        }
-
-        function highlightCurrentTrack() {
-            document.querySelectorAll('#playlist li').forEach(li => li.classList.remove('playing'));
-            if (currentTrackId) {
-                const activeLi = document.querySelector(`#playlist li[data-id='${currentTrackId}']`);
-                if (activeLi) activeLi.classList.add('playing');
-            }
-        }
-
-        // -- Controls (Next/Prev/Loop/Shuffle) --
-        function toggleLoop() {
-            isLoop = !isLoop;
-            document.getElementById('btnLoop').classList.toggle('active', isLoop);
-            player.loop = isLoop;
-        }
-
-        function toggleShuffle() {
-            isShuffle = !isShuffle;
-            document.getElementById('btnShuffle').classList.toggle('active', isShuffle);
-        }
-
-        function playNext() {
-            if (allTracks.length === 0) return;
-            if (isShuffle) {
-                const randomIndex = Math.floor(Math.random() * allTracks.length);
-                playTrack(allTracks[randomIndex]);
-                return;
-            }
-            const currentIndex = allTracks.findIndex(t => t.id === currentTrackId);
-            const nextIndex = (currentIndex + 1) % allTracks.length;
-            playTrack(allTracks[nextIndex]);
-        }
-
-        function playPrev() {
-            if (allTracks.length === 0) return;
-            const currentIndex = allTracks.findIndex(t => t.id === currentTrackId);
-            const prevIndex = (currentIndex - 1 + allTracks.length) % allTracks.length;
-            playTrack(allTracks[prevIndex]);
-        }
-
-        player.addEventListener('ended', () => {
-            if (!isLoop) playNext();
         });
-
-        // -- Picture in Picture --
-        async function togglePiP() {
-            if (document.pictureInPictureElement) {
-                await document.exitPictureInPicture();
-            } else if (player.readyState >= 2 && player.videoWidth > 0) {
-                await player.requestPictureInPicture().catch(err => alert("שגיאה בהפעלת PiP (אפשרי רק בווידאו)"));
-            }
-        }
-
-        // -- Bookmarks --
-        function formatTime(seconds) {
-            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-            const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-            return `${m}:${s}`;
-        }
-
-        function addBookmark() {
-            if (!currentTrackId) return alert("יש לנגן קובץ תחילה");
-            const time = player.currentTime;
-            const key = `bookmarks_${currentTrackId}`;
-            const bookmarks = JSON.parse(localStorage.getItem(key) || "[]");
-            
-            bookmarks.push(time);
-            bookmarks.sort((a, b) => a - b);
-            localStorage.setItem(key, JSON.stringify(bookmarks));
-            loadBookmarks();
-        }
-
-        function loadBookmarks() {
-            const list = document.getElementById('bookmarks-list');
-            list.innerHTML = "";
-            if (!currentTrackId) return;
-            
-            const key = `bookmarks_${currentTrackId}`;
-            const bookmarks = JSON.parse(localStorage.getItem(key) || "[]");
-            
-            bookmarks.forEach((time, index) => {
-                const li = document.createElement("li");
-                
-                const bmInfo = document.createElement("div");
-                bmInfo.className = "track-info";
-                bmInfo.style.cursor = "pointer";
-                bmInfo.innerHTML = `<span>סימניה ${index + 1}</span> <span style="color:var(--primary-color)">${formatTime(time)}</span>`;
-                bmInfo.onclick = () => { player.currentTime = time; player.play(); };
-
-                const delBtn = document.createElement("button");
-                delBtn.className = "action-btn";
-                delBtn.innerHTML = "❌";
-                delBtn.style.opacity = "0.7";
-                delBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    bookmarks.splice(index, 1);
-                    localStorage.setItem(key, JSON.stringify(bookmarks));
-                    loadBookmarks();
-                };
-                
-                li.appendChild(bmInfo);
-                li.appendChild(delBtn);
-                list.appendChild(li);
-            });
-        }
-
-        // -- Keyboard Shortcuts --
-        document.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT') return;
-            
-            switch(e.code) {
-                case 'Space': 
-                    e.preventDefault(); 
-                    player.paused ? player.play() : player.pause(); 
-                    break;
-                case 'ArrowRight': 
-                    player.currentTime = Math.min(player.duration, player.currentTime + 10); 
-                    break;
-                case 'ArrowLeft': 
-                    player.currentTime = Math.max(0, player.currentTime - 10); 
-                    break;
-                case 'ArrowUp': 
-                    e.preventDefault();
-                    player.volume = Math.min(1, player.volume + 0.1); 
-                    break;
-                case 'ArrowDown': 
-                    e.preventDefault();
-                    player.volume = Math.max(0, player.volume - 0.1); 
-                    break;
-            }
-        });
-
-        // -- State Persistence --
-        player.addEventListener('timeupdate', () => {
-            if (player.currentTime > 0) localStorage.setItem('lastTrackTime', player.currentTime);
-        });
-
-        function restoreState() {
-            const lastTrackId = localStorage.getItem('lastTrackId');
-            const lastTime = localStorage.getItem('lastTrackTime');
-            
-            if (lastTrackId) {
-                const req = db.transaction("tracks").objectStore("tracks").get(Number(lastTrackId));
-                req.onsuccess = () => {
-                    if (req.result) {
-                        currentTrackId = req.result.id;
-                        playTrack(req.result, Number(lastTime || 0));
-                        player.pause();
-                    }
-                };
-            }
-        }
-
-        // -- Web Audio API --
-        function initWebAudio() {
-            if (audioCtx) return; 
-            
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 256;
-
-            bassNode = audioCtx.createBiquadFilter();
-            bassNode.type = "lowshelf";
-            bassNode.frequency.value = 250;
-
-            trebleNode = audioCtx.createBiquadFilter();
-            trebleNode.type = "highshelf";
-            trebleNode.frequency.value = 4000;
-
-            source = audioCtx.createMediaElementSource(player);
-            source.connect(bassNode);
-            bassNode.connect(trebleNode);
-            trebleNode.connect(analyser);
-            analyser.connect(audioCtx.destination);
-
-            drawVisualizer();
-        }
-
-        function updateEQ() {
-            if (!bassNode) return;
-            bassNode.gain.value = document.getElementById('bass').value;
-            trebleNode.gain.value = document.getElementById('treble').value;
-        }
-
-        function changeSpeed(val) {
-            player.playbackRate = val;
-            document.getElementById('speedVal').textContent = val;
-        }
-
-        function drawVisualizer() {
-            requestAnimationFrame(drawVisualizer);
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            analyser.getByteFrequencyData(dataArray);
-
-            canvasCtx.fillStyle = '#000';
-            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-
-            const barWidth = (canvas.width / bufferLength) * 2.5;
-            let barHeight, x = 0;
-
-            for (let i = 0; i < bufferLength; i++) {
-                barHeight = dataArray[i] / 2;
-                canvasCtx.fillStyle = `rgb(${barHeight + 100}, 188, 212)`;
-                canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-                x += barWidth + 1;
-            }
-        }
     </script>
 </body>
 </html>
