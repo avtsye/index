@@ -1,1 +1,1 @@
-window.APP_CONFIG={githubUser:"avtsye",cacheMinutes:20,hiddenTopics:["hide-homepage"],featuredTopic:"featured"};
+window.APP_CONFIG={githubUser:"avtsye",cacheMinutes:20,hiddenTopics:["hide-homepage"],featuredTopic:"featured",contactApi:"https://avtsye-contact-api.onrender.com"};
