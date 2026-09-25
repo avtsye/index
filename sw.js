@@ -1,5 +1,5 @@
-const VERSION = 'avtsye-home-v9';
-const ASSETS = ['./', './index.html', './404.html', './app.js', './style.css', './config.js', './manifest.webmanifest', './favicon.svg'];
+const VERSION = 'avtsye-home-v10';
+const ASSETS = ['./', './index.html', './404.html', './app.js', './style.css', './config.js', './manifest.webmanifest', './favicon.svg', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', event => { event.waitUntil(caches.open(VERSION).then(cache => cache.addAll(ASSETS))); self.skipWaiting(); });
 self.addEventListener('activate', event => { event.waitUntil(Promise.all([self.clients.claim(), caches.keys().then(keys => Promise.all(keys.filter(key => key !== VERSION).map(key => caches.delete(key))))])); });
 self.addEventListener('fetch', event => {
