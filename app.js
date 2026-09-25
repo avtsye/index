@@ -1,15 +1,163 @@
-const C=window.APP_CONFIG||{githubUser:'avtsye',cacheMinutes:20,hiddenTopics:['hide-homepage'],featuredTopic:'featured'},USER=C.githubUser,API='https://api.github.com',TTL=C.cacheMinutes*60000,$=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),ago=d=>{let n=(Date.now()-new Date(d))/1000;if(n<3600)return 'לפני '+Math.max(1,Math.floor(n/60))+' דקות';if(n<86400)return 'לפני '+Math.floor(n/3600)+' שעות';if(n<604800)return 'לפני '+Math.floor(n/86400)+' ימים';return new Intl.DateTimeFormat('he-IL',{day:'numeric',month:'short',year:'numeric'}).format(new Date(d))};let all=[],profile={},events=[],view='portfolio';
-function read(k,stale=false){try{let x=JSON.parse(localStorage.getItem(k));return x&&(stale||Date.now()-x.t<TTL)?x.v:null}catch{return null}}function save(k,v){try{localStorage.setItem(k,JSON.stringify({t:Date.now(),v}))}catch{}}async function get(path,force=false){let k='gh:'+path,c=!force&&read(k);if(c)return c;try{let r=await fetch(API+path,{headers:{Accept:'application/vnd.github+json'}});if(!r.ok)throw Error(r.status);let v=await r.json();save(k,v);return v}catch(e){let s=read(k,true);if(s)return s;throw e}}
-function setTheme(){let d=localStorage.theme?localStorage.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;document.documentElement.dataset.theme=d?'dark':'light';$('#theme').textContent=d?'☀':'☾'}setTheme();$('#theme').onclick=()=>{localStorage.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';setTheme()};
-function urlState(){let p=new URLSearchParams(location.search);$('#q').value=p.get('search')||'';return p}function syncURL(){let p=new URLSearchParams();if($('#q').value)p.set('search',$('#q').value);if($('#lang').value)p.set('language',$('#lang').value);history.replaceState({},'',location.pathname+(p.toString()?'?'+p:''))}
-function render(){let q=$('#q').value.toLowerCase(),lang=$('#lang').value,sort=$('#sort').value,hidden=C.hiddenTopics||[];let rows=all.filter(r=>!r.archived&&!hidden.some(t=>r.topics.includes(t))).filter(r=>(r.name+' '+(r.description||'')+' '+r.topics.join(' ')).toLowerCase().includes(q)).filter(r=>!lang||r.language===lang);rows.sort((a,b)=>sort==='stars'?b.stargazers_count-a.stargazers_count:sort==='name'?a.name.localeCompare(b.name):new Date(b.pushed_at)-new Date(a.pushed_at));$('#repos').innerHTML=rows.map(r=>card(r)).join('')||'<div class="empty">לא נמצאו פרויקטים. נסו חיפוש אחר או הסירו את הסינון.</div>';syncURL()}
-function card(r){let f=r.topics.includes(C.featuredTopic),site=r.homepage&&/^https?:/.test(r.homepage)?r.homepage:null,newish=Date.now()-new Date(r.pushed_at)<7*864e5;return `<article class="card ${f?'featured':''}"><div class="toprow"><span class="repoicon">${f?'★':'⌘'}</span>${newish?'<span class="fresh">חדש</span>':''}</div><h3>${esc(r.name)}</h3><p>${esc(r.description||'מאגר ציבורי ב‑GitHub')}</p><div class="meta">${r.language?`<span class="pill">${esc(r.language)}</span>`:''}<span class="pill">★ ${r.stargazers_count}</span><span class="pill">⑂ ${r.forks_count}</span><span class="pill">${r.open_issues_count} פניות</span></div><div class="topics">${r.topics.filter(t=>![C.featuredTopic,...C.hiddenTopics].includes(t)).slice(0,5).map(t=>`<span class="pill topic">#${esc(t)}</span>`).join('')}</div><div class="actions"><button class="smallbtn" data-action="details" data-repo="${esc(r.name)}">פרטי פרויקט</button><a class="smallbtn" href="${r.html_url}" target="_blank">GitHub ↗</a>${site?`<a class="smallbtn" href="${esc(site)}" target="_blank">אתר ↗</a>`:''}<button class="smallbtn" data-action="share" data-repo="${esc(r.name)}">שיתוף</button></div><div class="updated">עודכן ${ago(r.pushed_at)}</div></article>`}
-async function openRepo(name){let r=all.find(x=>x.name===name);if(!r)return;$('#modal').classList.add('show');$('#modalBody').innerHTML='<div class="loading">טוען פרטי פרויקט…</div>';let [rel,langs,readme,runs]=await Promise.all([get('/repos/'+USER+'/'+name+'/releases/latest').catch(()=>null),get('/repos/'+USER+'/'+name+'/languages').catch(()=>({})),get('/repos/'+USER+'/'+name+'/readme').catch(()=>null),get('/repos/'+USER+'/'+name+'/actions/runs?per_page=1').catch(()=>null)]);let readmeLink=readme?readme.html_url:null,run=runs?.workflow_runs?.[0];$('#modalBody').innerHTML=`<h2>${esc(name)}</h2><p>${esc(r.description||'')}</p><div class="detailgrid"><div><b>שפות</b><span>${esc(Object.keys(langs).slice(0,6).join(', ')||'—')}</span></div><div><b>Release</b><span>${rel?esc(rel.tag_name):'אין Release'}</span></div><div><b>Actions</b><span>${run?esc(run.conclusion||run.status):'לא נמצא'}</span></div><div><b>Branch</b><span>${esc(r.default_branch)}</span></div></div><div class="actions"><a class="smallbtn" href="${r.html_url}" target="_blank">GitHub</a>${readmeLink?`<a class="smallbtn" href="${readmeLink}" target="_blank">README</a>`:''}${rel?`<a class="smallbtn" href="${rel.html_url}" target="_blank">Release</a>`:''}${run?`<a class="smallbtn" href="${run.html_url}" target="_blank">Actions</a>`:''}<a class="smallbtn" href="${r.html_url}/issues" target="_blank">Issues</a></div>`}
-async function shareRepo(n){let u=location.origin+location.pathname+'?search='+encodeURIComponent(n);try{await navigator.clipboard.writeText(u);toast('הקישור לפרויקט הועתק')}catch{toast('לא ניתן להעתיק אוטומטית. אפשר להעתיק את הכתובת משורת הדפדפן')}}
-function toast(t){$('#toast').textContent=t;$('#toast').classList.add('show');setTimeout(()=>$('#toast').classList.remove('show'),1800)}
-function renderActivity(){let recent=all.filter(r=>Date.now()-new Date(r.pushed_at)<7*864e5).length,stars=all.reduce((s,r)=>s+r.stargazers_count,0),issues=all.reduce((s,r)=>s+r.open_issues_count,0);$('#dashStats').innerHTML=`<div><b>${recent}</b><span>עודכנו השבוע</span></div><div><b>${stars}</b><span>כוכבים</span></div><div><b>${issues}</b><span>Issues פתוחים</span></div><div><b>${new Set(all.map(r=>r.language).filter(Boolean)).size}</b><span>שפות</span></div>`;$('#activity').innerHTML=events.slice(0,10).map(e=>`<div class="event"><b>${esc(e.repo.name.replace(USER+'/',''))}</b><span>${esc(e.type.replace('Event',''))} · ${ago(e.created_at)}</span></div>`).join('')||'<div class="empty">אין פעילות ציבורית להצגה.</div>'}
-function toggleView(){view=view==='portfolio'?'dashboard':'portfolio';$('#activitySec').hidden=view!=='dashboard';$('#viewBtn').textContent=view==='portfolio'?'לוח נתונים':'פרויקטים';toast(view==='portfolio'?'תצוגת פרויקטים':'תצוגת פעילות')}
-async function getAllRepos(force=false){let result=[];for(let page=1;page<=20;page++){let batch=await get('/users/'+USER+'/repos?per_page=100&sort=updated&type=owner&page='+page,force);if(!Array.isArray(batch))throw Error('invalid_repos');result.push(...batch);if(batch.length<100)break}return result}
-async function load(force=false){$('#refresh').disabled=true;try{let [u,repos,ev]=await Promise.all([get('/users/'+USER,force),getAllRepos(force),get('/users/'+USER+'/events/public?per_page=20',force).catch(()=>[])]);profile=u;all=repos;events=ev;document.title=(u.name||u.login)+' — Developer Hub';['avatar','navAvatar'].forEach(id=>$('#'+id).src=u.avatar_url);$('#name').textContent=u.name||u.login;$('#navName').textContent=u.name||u.login;$('#login').textContent='@'+u.login;$('#bio').textContent=u.bio||'פרויקטים, כלים וניסויים שאני בונה — מתעדכנים אוטומטית מ‑GitHub.';$('#repoCount').textContent=u.public_repos;$('#followers').textContent=u.followers;$('#following').textContent=u.following;['gh','footerGh'].forEach(id=>$('#'+id).href=u.html_url);let langs=[...new Set(repos.map(r=>r.language).filter(Boolean))].sort();$('#lang').innerHTML='<option value="">כל השפות</option>'+langs.map(x=>`<option>${esc(x)}</option>`).join('');let p=urlState();if(p.get('language'))$('#lang').value=p.get('language');render();renderActivity();$('#updated').textContent='עודכן '+new Intl.DateTimeFormat('he-IL',{hour:'2-digit',minute:'2-digit'}).format(new Date());}catch{$('#repos').innerHTML='<div class="empty">לא ניתן לטעון כרגע את הפרויקטים. בדקו את החיבור ונסו ללחוץ על רענן.</div>'}finally{$('#refresh').disabled=false}}
-['q','lang','sort'].forEach(id=>$('#'+id).addEventListener(id==='q'?'input':'change',render));$('#refresh').onclick=()=>load(true);$('#viewBtn').onclick=toggleView;$('#activityLink').onclick=()=>{if(view!=='dashboard')toggleView()};$('#repos').addEventListener('click',e=>{let b=e.target.closest('[data-action]');if(!b)return;if(b.dataset.action==='details')openRepo(b.dataset.repo);if(b.dataset.action==='share')shareRepo(b.dataset.repo)});$('#closeModal').onclick=()=>$('#modal').classList.remove('show');$('#modal').onclick=e=>{if(e.target.id==='modal')$('#modal').classList.remove('show')};document.addEventListener('keydown',e=>{if(e.key==='/'&&!/INPUT|SELECT/.test(document.activeElement.tagName)){e.preventDefault();$('#q').focus()}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#palette').classList.toggle('show');$('#cmd').focus()}if(e.key==='Escape'){$('#palette').classList.remove('show');$('#modal').classList.remove('show');closeContact()}if(e.key.toLowerCase()==='d'&&!/INPUT/.test(document.activeElement.tagName))$('#theme').click()});$('#cmd').addEventListener('input',e=>{let q=e.target.value.toLowerCase();$('#cmdResults').innerHTML=all.filter(r=>r.name.toLowerCase().includes(q)).slice(0,7).map(r=>`<button data-repo="${esc(r.name)}">${esc(r.name)}</button>`).join('')});$('#cmdResults').addEventListener('click',e=>{let b=e.target.closest('[data-repo]');if(b){$('#palette').classList.remove('show');openRepo(b.dataset.repo)}});if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');load();
-const contactModal=$('#contactModal'),contactForm=$('#contactForm');function openContact(){contactModal.classList.add('show');setTimeout(()=>contactForm.elements.name.focus(),50)}function closeContact(){contactModal.classList.remove('show')}$('#contact').onclick=openContact;$('#closeContact').onclick=closeContact;contactModal.onclick=e=>{if(e.target===contactModal)closeContact()};contactForm.addEventListener('submit',async e=>{e.preventDefault();const btn=$('#contactSubmit'),status=$('#contactStatus'),data=Object.fromEntries(new FormData(contactForm));btn.disabled=true;status.textContent='שולח…';try{if(!C.contactApi)throw Error('missing_endpoint');let r=await fetch(C.contactApi+'/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.timeout(20000)});let x=await r.json().catch(()=>({}));if(!r.ok)throw Error(x.error||r.status);contactForm.reset();status.textContent='הפנייה נשלחה בהצלחה.';toast('הפנייה נשלחה');setTimeout(closeContact,1200)}catch(err){status.textContent=err.message==='rate_limit'?'נשלחו יותר מדי פניות. נסו שוב מאוחר יותר.':err.name==='TimeoutError'?'שרת הפניות אינו מגיב כרגע. נסו שוב בעוד כמה דקות.':err.message==='missing_endpoint'||err instanceof TypeError?'לא ניתן ליצור קשר עם שרת הפניות כרגע. נסו שוב מאוחר יותר.':'השליחה נכשלה: '+(err.message||'שגיאת רשת')}finally{btn.disabled=false}});
+const CFG = window.APP_CONFIG || { githubUser: 'avtsye', cacheMinutes: 20, hiddenTopics: ['hide-homepage'], featuredTopic: 'featured' };
+const USER = CFG.githubUser;
+const API = 'https://api.github.com';
+const TTL = Math.max(1, Number(CFG.cacheMinutes) || 20) * 60000;
+const $ = selector => document.querySelector(selector);
+const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+const niceDate = value => new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(value));
+const daysAgo = value => { const diff = Math.max(0, Date.now() - new Date(value).getTime()); if (diff < 3600000) return 'בשעה האחרונה'; if (diff < 86400000) return `לפני ${Math.floor(diff / 3600000)} שעות`; if (diff < 604800000) return `לפני ${Math.floor(diff / 86400000)} ימים`; return niceDate(value); };
+const validURL = value => { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) ? url.href : null; } catch { return null; } };
+const state = { profile: null, repos: [], events: [], visible: 12, loadedAt: null, stale: false, loading: false };
+let toastTimer;
+function toast(message) { const el = $('#toast'); el.textContent = message; el.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 3300); }
+function cached(key, allowExpired = false) { try { const item = JSON.parse(localStorage.getItem('home:' + key)); return item && (allowExpired || Date.now() - item.time < TTL) ? item : null; } catch { return null; } }
+function cache(key, value) { try { localStorage.setItem('home:' + key, JSON.stringify({ time: Date.now(), value })); } catch { /* Private browsing may disable storage. */ } }
+async function request(path, { refresh = false, optional = false } = {}) {
+  const hit = !refresh && cached(path);
+  if (hit) return hit.value;
+  try {
+    const response = await fetch(API + path, { headers: { Accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(18000) });
+    if (!response.ok) { if (response.status === 403 || response.status === 429) throw Error('rate_limit'); if (optional && response.status === 404) return null; throw Error('http_' + response.status); }
+    const value = await response.json(); cache(path, value); return value;
+  } catch (error) {
+    const backup = cached(path, true);
+    if (backup) { state.stale = true; return backup.value; }
+    if (optional) return null;
+    throw error;
+  }
+}
+async function allRepositories(refresh) {
+  const result = [];
+  for (let page = 1; page <= 20; page++) {
+    const batch = await request(`/users/${encodeURIComponent(USER)}/repos?per_page=100&sort=updated&type=owner&page=${page}`, { refresh });
+    if (!Array.isArray(batch)) throw Error('invalid_data');
+    result.push(...batch);
+    if (batch.length < 100) break;
+  }
+  return result;
+}
+function visibleRepos() { const hidden = CFG.hiddenTopics || []; return state.repos.filter(repo => !repo.archived && !hidden.some(topic => (repo.topics || []).includes(topic))); }
+function getFilters() { return { q: $('#q').value.trim().toLocaleLowerCase(), topic: $('#topic').value, lang: $('#lang').value, sort: $('#sort').value, siteOnly: $('#siteOnly').checked }; }
+function restoreFilters() { const p = new URLSearchParams(location.search); $('#q').value = p.get('search') || ''; $('#topic').dataset.requested = p.get('topic') || ''; $('#lang').dataset.requested = p.get('language') || ''; $('#sort').value = ['updated', 'stars', 'name', 'activity'].includes(p.get('sort')) ? p.get('sort') : 'updated'; $('#siteOnly').checked = p.get('site') === '1'; }
+function syncURL() { const f = getFilters(), p = new URLSearchParams(); if (f.q) p.set('search', $('#q').value.trim()); if (f.topic) p.set('topic', f.topic); if (f.lang) p.set('language', f.lang); if (f.sort !== 'updated') p.set('sort', f.sort); if (f.siteOnly) p.set('site', '1'); history.replaceState({}, '', location.pathname + (p.size ? '?' + p : '') + location.hash); }
+function applyTheme() { let saved = null; try { saved = localStorage.getItem('home:theme'); } catch {} const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; document.documentElement.dataset.theme = dark ? 'dark' : 'light'; $('#theme').textContent = dark ? '☀' : '☾'; }
+function safeStorageTheme(value) { try { localStorage.setItem('home:theme', value); } catch {} applyTheme(); }
+function filterOptions() {
+  const repos = visibleRepos(), topicCounts = new Map(), languages = new Set();
+  repos.forEach(repo => { if (repo.language) languages.add(repo.language); (repo.topics || []).filter(topic => ![CFG.featuredTopic, ...(CFG.hiddenTopics || [])].includes(topic)).forEach(topic => topicCounts.set(topic, (topicCounts.get(topic) || 0) + 1)); });
+  const topics = [...topicCounts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  $('#topic').innerHTML = '<option value="">כל הנושאים</option>' + topics.map(([topic, count]) => `<option value="${escapeHTML(topic)}">${escapeHTML(topic)} (${count})</option>`).join('');
+  $('#lang').innerHTML = '<option value="">כל השפות</option>' + [...languages].sort().map(lang => `<option value="${escapeHTML(lang)}">${escapeHTML(lang)}</option>`).join('');
+  $('#topic').value = $('#topic').dataset.requested || ''; $('#lang').value = $('#lang').dataset.requested || '';
+  $('#topicChips').innerHTML = topics.slice(0, 7).map(([topic]) => `<button class="chip" type="button" data-topic="${escapeHTML(topic)}">${escapeHTML(topic)}</button>`).join('');
+}
+function card(repo) {
+  const featured = (repo.topics || []).includes(CFG.featuredTopic), site = validURL(repo.homepage), updated = daysAgo(repo.pushed_at), topics = (repo.topics || []).filter(topic => ![CFG.featuredTopic, ...(CFG.hiddenTopics || [])].includes(topic)).slice(0, 3);
+  return `<article class="card ${featured ? 'featured' : ''}"><div class="card-top"><span class="repoicon" aria-hidden="true">${featured ? '★' : '⌘'}</span>${featured ? '<span class="featured-tag">פרויקט נבחר</span>' : ''}</div><h3 dir="auto">${escapeHTML(repo.name)}</h3><p>${escapeHTML(repo.description || 'צפו בפרטי הפרויקט ובקוד המקור.')}</p><div class="card-tags">${repo.language ? `<span>${escapeHTML(repo.language)}</span>` : ''}${topics.map(topic => `<span>${escapeHTML(topic)}</span>`).join('')}</div><div class="card-actions">${site ? `<a class="primary small" href="${escapeHTML(site)}" target="_blank" rel="noopener noreferrer">פתיחת האתר ↗</a>` : `<a class="primary small" href="${escapeHTML(repo.html_url)}" target="_blank" rel="noopener noreferrer">פתיחה ב־GitHub ↗</a>`}<button type="button" class="secondary small" data-action="details" data-repo="${escapeHTML(repo.name)}">פרטים</button><button type="button" class="quiet small" data-action="share" data-repo="${escapeHTML(repo.name)}" aria-label="שיתוף ${escapeHTML(repo.name)}">שיתוף</button></div><div class="card-foot"><time datetime="${escapeHTML(repo.pushed_at)}" title="${niceDate(repo.pushed_at)}">עודכן ${updated}</time><span aria-label="${repo.stargazers_count} כוכבים">★ ${repo.stargazers_count}</span></div></article>`;
+}
+function renderRepos() {
+  const f = getFilters(); let rows = visibleRepos().filter(repo => {
+    const haystack = [repo.name, repo.description || '', ...(repo.topics || [])].join(' ').toLocaleLowerCase();
+    return haystack.includes(f.q) && (!f.topic || (repo.topics || []).includes(f.topic)) && (!f.lang || repo.language === f.lang) && (!f.siteOnly || !!validURL(repo.homepage));
+  });
+  const activityCount = repo => state.events.filter(event => event.type === 'PushEvent' && event.repo.name === repo.full_name && Date.now() - new Date(event.created_at) < 30 * 86400000).length;
+  rows.sort((a, b) => f.sort === 'stars' ? b.stargazers_count - a.stargazers_count : f.sort === 'name' ? a.name.localeCompare(b.name, 'he') : f.sort === 'activity' ? activityCount(b) - activityCount(a) || new Date(b.pushed_at) - new Date(a.pushed_at) : new Date(b.pushed_at) - new Date(a.pushed_at));
+  $('#resultCount').textContent = `${rows.length} פרויקטים${state.stale ? ' · מוצגים נתונים שמורים' : ''}`;
+  $('#clearFilters').hidden = !(f.q || f.topic || f.lang || f.siteOnly || f.sort !== 'updated');
+  document.querySelectorAll('.chip').forEach(button => button.classList.toggle('active', button.dataset.topic === f.topic));
+  $('#repos').innerHTML = rows.slice(0, state.visible).map(card).join('') || '<div class="empty">לא נמצאו פרויקטים מתאימים. אפשר לשנות את החיפוש או לנקות את הסינון.<br><button type="button" class="secondary" data-action="clear">ניקוי סינון</button></div>';
+  $('#more').hidden = rows.length <= state.visible;
+  syncURL();
+}
+function renderProfile() {
+  const user = state.profile; if (!user) return;
+  const display = user.name || user.login;
+  document.title = `${display} — פרויקטים`;
+  $('#heroTitle').innerHTML = `הפרויקטים<br><span>של ${escapeHTML(display)}</span>`;
+  $('#name').textContent = display; $('#navName').textContent = display; $('#login').textContent = '@' + user.login;
+  $('#bio').textContent = user.bio || 'פרויקטים וכלים שמתעדכנים ישירות מהפרופיל שלי ב־GitHub.';
+  $('#aboutText').textContent = user.bio || 'כאן אפשר למצוא את הפרויקטים, הכלים והקוד שאני מפרסם ב־GitHub.';
+  ['avatar', 'navAvatar'].forEach(id => { const image = $('#' + id); image.src = user.avatar_url; image.alt = id === 'avatar' ? `תמונת הפרופיל של ${display}` : ''; });
+  $('#repoCount').textContent = user.public_repos; $('#followers').textContent = user.followers;
+  $('#updatedThisWeek').textContent = state.repos.filter(repo => Date.now() - new Date(repo.pushed_at) < 7 * 86400000).length;
+  ['profileLink', 'aboutGitHub', 'footerGh'].forEach(id => $('#' + id).href = user.html_url);
+}
+const eventNames = { PushEvent: 'עדכון קוד', CreateEvent: 'יצירת פרויקט או ענף', ReleaseEvent: 'פרסום גרסה', IssuesEvent: 'עדכון פנייה', PullRequestEvent: 'עדכון בקשת שינוי', ForkEvent: 'יצירת עותק', WatchEvent: 'סימון בכוכב', IssueCommentEvent: 'תגובה לפנייה' };
+function renderActivity() {
+  const days = Number($('#activityRange').value); const events = state.events.filter(event => Date.now() - new Date(event.created_at) < days * 86400000 && eventNames[event.type]).slice(0, 18);
+  const repos = visibleRepos(); $('#dashStats').innerHTML = `<div><b>${repos.filter(repo => Date.now() - new Date(repo.pushed_at) < days * 86400000).length}</b><span>מאגרים שעודכנו</span></div><div><b>${repos.reduce((total, repo) => total + repo.stargazers_count, 0)}</b><span>כוכבים</span></div><div><b>${repos.reduce((total, repo) => total + repo.open_issues_count, 0)}</b><span>פניות פתוחות</span></div>`;
+  $('#activity').innerHTML = events.map(event => `<div class="event"><div><b>${escapeHTML(eventNames[event.type])}</b><span dir="auto">${escapeHTML(event.repo.name.replace(USER + '/', ''))}</span></div><time datetime="${escapeHTML(event.created_at)}" title="${niceDate(event.created_at)}">${daysAgo(event.created_at)}</time></div>`).join('') || '<div class="empty">אין פעילות ציבורית להצגה בטווח שנבחר.</div>';
+}
+async function load(refresh = false) {
+  if (state.loading) return; state.loading = true; state.stale = false; $('#refresh').disabled = true; $('#refresh').textContent = 'מרענן…';
+  try {
+    const [profile, repos, events] = await Promise.all([request(`/users/${encodeURIComponent(USER)}`, { refresh }), allRepositories(refresh), request(`/users/${encodeURIComponent(USER)}/events/public?per_page=100`, { refresh, optional: true })]);
+    state.profile = profile; state.repos = repos; state.events = Array.isArray(events) ? events : [];
+    if (!state.stale) { state.loadedAt = Date.now(); cache('last-good-load', state.loadedAt); }
+    else { state.loadedAt = cached('last-good-load', true)?.value || null; }
+    filterOptions(); renderProfile(); renderRepos(); renderActivity();
+    $('#updated').textContent = state.loadedAt ? (state.stale ? 'נתונים שמורים מ־' : 'עודכן ב־') + new Intl.DateTimeFormat('he-IL', { dateStyle: state.stale ? 'short' : undefined, timeStyle: 'short' }).format(state.loadedAt) : 'אין זמן עדכון ידוע';
+    $('#dataState').textContent = state.stale ? 'מוצגים נתונים שמורים; ניתן לנסות לרענן' : 'הנתונים עדכניים';
+    const direct = new URLSearchParams(location.search).get('project'); if (direct) openRepo(direct, false);
+  } catch (error) {
+    const message = error.message === 'rate_limit' ? 'GitHub מגביל כרגע את מספר הבקשות. נסו שוב מאוחר יותר.' : 'לא ניתן לטעון כעת נתונים מ־GitHub. בדקו את החיבור ונסו שוב.';
+    $('#repos').innerHTML = `<div class="empty">${message}<br><button type="button" class="secondary" data-action="retry">ניסיון חוזר</button></div>`;
+    $('#resultCount').textContent = 'הטעינה נכשלה'; $('#dataState').textContent = 'לא ניתן לטעון נתונים';
+  } finally { state.loading = false; $('#refresh').disabled = false; $('#refresh').textContent = 'רענון'; }
+}
+function openDialog(dialog) { dialog.showModal(); }
+async function openRepo(name, updateURL = true) {
+  const repo = state.repos.find(item => item.name === name); if (!repo) return;
+  const dialog = $('#details'); $('#detailsTitle').textContent = repo.name; document.title = `${repo.name} — ${state.profile?.name || USER}`;
+  document.querySelector('meta[name=description]').content = repo.description || 'פרויקט ב־GitHub';
+  $('#detailsBody').innerHTML = `<p>${escapeHTML(repo.description || 'אין תיאור לפרויקט זה.')}</p><p class="loading">טוען פרטים נוספים…</p>`;
+  if (!dialog.open) openDialog(dialog);
+  if (updateURL) { const url = new URL(location.href); url.searchParams.set('project', name); history.pushState({}, '', url); }
+  const base = `/repos/${encodeURIComponent(USER)}/${encodeURIComponent(name)}`;
+  const [release, languages, readme, runs] = await Promise.all([request(base + '/releases/latest', { optional: true }), request(base + '/languages', { optional: true }), request(base + '/readme', { optional: true }), request(base + '/actions/runs?per_page=1', { optional: true })]);
+  if (!dialog.open || $('#detailsTitle').textContent !== name) return;
+  const site = validURL(repo.homepage), run = runs?.workflow_runs?.[0];
+  $('#detailsBody').innerHTML = `<p>${escapeHTML(repo.description || 'אין תיאור לפרויקט זה.')}</p><div class="detailgrid"><div><b>שפות</b><span>${escapeHTML(Object.keys(languages || {}).slice(0, 6).join(', ') || 'לא ידוע')}</span></div><div><b>גרסה אחרונה</b><span>${escapeHTML(release?.tag_name || 'לא פורסמה')}</span></div><div><b>בדיקת קוד אחרונה</b><span>${escapeHTML(run?.conclusion || run?.status || 'אין מידע')}</span></div><div><b>ענף ראשי</b><span>${escapeHTML(repo.default_branch)}</span></div></div><div class="detail-actions">${site ? `<a class="primary" href="${escapeHTML(site)}" target="_blank" rel="noopener noreferrer">פתיחת האתר ↗</a>` : ''}<a class="secondary" href="${escapeHTML(repo.html_url)}" target="_blank" rel="noopener noreferrer">GitHub ↗</a>${readme?.html_url ? `<a class="secondary" href="${escapeHTML(readme.html_url)}" target="_blank" rel="noopener noreferrer">תיעוד ↗</a>` : ''}${release?.html_url ? `<a class="secondary" href="${escapeHTML(release.html_url)}" target="_blank" rel="noopener noreferrer">הגרסה האחרונה ↗</a>` : ''}</div>`;
+}
+async function shareRepo(name) {
+  const url = new URL(location.href); url.search = ''; url.hash = ''; url.searchParams.set('project', name);
+  try { await navigator.clipboard.writeText(url.href); toast('הקישור לפרויקט הועתק'); }
+  catch { openDialog($('#palette')); $('#cmd').value = url.href; $('#cmd').select(); $('#cmdResults').innerHTML = '<p>העתקה אוטומטית אינה זמינה. אפשר להעתיק את הכתובת מהשדה למעלה.</p>'; }
+}
+function clearFilters() { $('#q').value = ''; $('#topic').value = ''; $('#lang').value = ''; $('#sort').value = 'updated'; $('#siteOnly').checked = false; state.visible = 12; renderRepos(); }
+function searchQuick() { const q = $('#cmd').value.toLocaleLowerCase(); const matches = visibleRepos().filter(repo => [repo.name, repo.description || ''].join(' ').toLocaleLowerCase().includes(q)).slice(0, 8); $('#cmdResults').innerHTML = matches.map(repo => `<button type="button" data-repo="${escapeHTML(repo.name)}"><b>${escapeHTML(repo.name)}</b><small>${escapeHTML(repo.description || 'פרויקט ב־GitHub')}</small></button>`).join('') || '<p>לא נמצאו פרויקטים.</p>'; }
+function contactError(error) { if (error.message === 'rate_limit') return 'נשלחו יותר מדי פניות. נסו שוב מאוחר יותר.'; if (error.name === 'TimeoutError') return 'שרת הפניות אינו מגיב כעת. נסו שוב בעוד כמה דקות.'; if (error instanceof TypeError) return 'אין חיבור לשרת הפניות כרגע. בדקו את החיבור ונסו שוב.'; return 'השליחה נכשלה. נסו שוב מאוחר יותר.'; }
+async function submitContact(event) {
+  event.preventDefault(); const form = event.currentTarget, button = $('#contactSubmit'), status = $('#contactStatus');
+  if (!form.reportValidity()) return; button.disabled = true; status.textContent = 'שולח…';
+  try {
+    if (!CFG.contactApi) throw Error('missing_endpoint');
+    const response = await fetch(CFG.contactApi + '/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(form))), signal: AbortSignal.timeout(25000) });
+    const body = await response.json().catch(() => ({})); if (!response.ok || !body.ok) throw Error(body.error || 'server');
+    form.reset(); status.textContent = 'הפנייה נשלחה בהצלחה.'; toast('הפנייה נשלחה');
+  } catch (error) { status.textContent = contactError(error); }
+  finally { button.disabled = false; }
+}
+function init() {
+  restoreFilters(); applyTheme();
+  $('#theme').addEventListener('click', () => safeStorageTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
+  $('#refresh').addEventListener('click', () => load(true));
+  ['q', 'topic', 'lang', 'sort', 'siteOnly'].forEach(id => $('#' + id).addEventListener(id === 'q' ? 'input' : 'change', () => { state.visible = 12; renderRepos(); }));
+  $('#more').addEventListener('click', () => { state.visible += 12; renderRepos(); }); $('#clearFilters').addEventListener('click', clearFilters);
+  $('#topicChips').addEventListener('click', event => { const button = event.target.closest('[data-topic]'); if (button) { $('#topic').value = $('#topic').value === button.dataset.topic ? '' : button.dataset.topic; state.visible = 12; renderRepos(); } });
+  $('#repos').addEventListener('click', event => { const button = event.target.closest('[data-action]'); if (!button) return; if (button.dataset.action === 'details') openRepo(button.dataset.repo); if (button.dataset.action === 'share') shareRepo(button.dataset.repo); if (button.dataset.action === 'clear') clearFilters(); if (button.dataset.action === 'retry') load(true); });
+  $('#activityRange').addEventListener('change', renderActivity);
+  $('#contact').addEventListener('click', () => openDialog($('#contactModal'))); $('#contactForm').addEventListener('submit', submitContact);
+  $('#quickSearch').addEventListener('click', () => { openDialog($('#palette')); $('#cmd').value = ''; searchQuick(); $('#cmd').focus(); });
+  $('#cmd').addEventListener('input', searchQuick); $('#cmdResults').addEventListener('click', event => { const button = event.target.closest('[data-repo]'); if (button) { $('#palette').close(); openRepo(button.dataset.repo); } });
+  document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => $('#' + button.dataset.close).close()));
+  document.querySelectorAll('dialog').forEach(dialog => { dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); }); });
+  $('#details').addEventListener('close', () => { document.title = `${state.profile?.name || USER} — פרויקטים`; document.querySelector('meta[name=description]').content = 'הפרויקטים, הכלים והפעילות של avtsye — מידע שמתעדכן ישירות מ־GitHub.'; const url = new URL(location.href); if (url.searchParams.has('project')) { url.searchParams.delete('project'); history.replaceState({}, '', url); } });
+  document.addEventListener('keydown', event => { const editing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) || document.activeElement.isContentEditable; if (event.key === '/' && !editing) { event.preventDefault(); $('#q').focus(); } if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); if (!$('#palette').open) { openDialog($('#palette')); searchQuick(); } $('#cmd').focus(); } if (event.key.toLowerCase() === 'd' && !editing && !event.ctrlKey && !event.metaKey) $('#theme').click(); });
+  window.addEventListener('offline', () => toast('אין חיבור כרגע. פרויקטים שמורים יוצגו אם הם זמינים.'));
+  window.addEventListener('online', () => toast('החיבור חזר. אפשר לרענן את הפרויקטים.'));
+  window.addEventListener('popstate', () => { const name = new URLSearchParams(location.search).get('project'); if (name) openRepo(name, false); else if ($('#details').open) $('#details').close(); });
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+  load();
+}
+init();

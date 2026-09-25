@@ -1,0 +1,20 @@
+name: Check contact service
+on:
+  schedule:
+    - cron: '13 */6 * * *'
+  workflow_dispatch:
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for a healthy response
+        run: |
+          for attempt in 1 2 3; do
+            if curl --fail --silent --show-error --max-time 80 https://avtsye-contact-api.onrender.com/health | grep -q '"ok":true'; then
+              echo 'Contact service is responding.'
+              exit 0
+            fi
+            sleep 15
+          done
+          echo 'Contact service did not respond.' >&2
+          exit 1

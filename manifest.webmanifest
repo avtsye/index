@@ -1,1 +1,1 @@
-{"name":"avtsye Developer Hub","short_name":"avtsye Hub","start_url":"./","display":"standalone","background_color":"#f7f8fc","theme_color":"#635bff","description":"Dynamic GitHub portfolio and developer dashboard for avtsye","icons":[]}
+{"name":"הפרויקטים של avtsye","short_name":"הפרויקטים שלי","lang":"he","dir":"rtl","start_url":"./","scope":"./","display":"standalone","background_color":"#f4f6f9","theme_color":"#111827","description":"פרויקטים ופעילות שמתעדכנים מ־GitHub","icons":[{"src":"./favicon.svg","type":"image/svg+xml","sizes":"any","purpose":"any maskable"}]}
