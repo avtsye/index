@@ -12,3 +12,13 @@ footer{padding:35px 0 50px;color:var(--muted);font-size:13px}.foot{border-top:1p
 #contactModal{overflow-y:auto;align-items:start;padding-top:max(18px,5vh);padding-bottom:max(18px,5vh)}
 #contactModal .contactbox{max-height:90vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 @media(max-width:820px){#contactModal{padding:10px;align-items:start}#contactModal .contactbox{max-height:calc(100dvh - 20px);border-radius:16px;padding:20px 16px 24px}}
+
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--brand);outline-offset:3px}
+.smallbtn{font-size:14px;cursor:pointer;color:var(--ink)}
+.pill,.updated,.stats span{font-size:13px}
+.contactbox label{font-size:14px}
+.card p{font-size:16px}
+.modalbox,.palettebox{max-height:calc(100dvh - 32px);overflow-y:auto}
+@media(max-width:820px){.hero{padding-top:35px;padding-bottom:24px}.hero h1{font-size:clamp(38px,11vw,58px)}.navlinks{gap:8px}.navlinks .iconbtn{padding:8px}.navlinks #viewBtn{display:inline-block}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
